@@ -1,9 +1,9 @@
 /*!***************************************************************************
 *!
 *! FILE NAME  : frontpanel.hh
-*! 
+*!
 *! DESCRIPTION: The frontpanel
-*! 
+*!
 *!***************************************************************************/
 
 #ifndef frontpanel_hh
@@ -44,9 +44,9 @@ class LED
  private:
    bool iAmOn;
    byte myLedBit;
-   // bitmask containing a '1' in the bit position for this led in the led 
+   // bitmask containing a '1' in the bit position for this led in the led
    // register.
-   static byte writeOutRegisterShadow;
+   static byte writeOutRegisterShadow = 0x38;
    // Shadow of the content of the led register. Must be used to manipulate
    // one led without reseting the others.
 };
@@ -69,7 +69,7 @@ class NetworkLEDTimer : public Timed
    // Constructor: initiate myBlinkTime
    void start();
    // Start timer
-  
+
  private:
    void timeOut();
    // notify FrontPanel that this timer has expired.
@@ -144,17 +144,17 @@ class FrontPanel : public Job
    // Called from the timers to notify that a timer has expired.
    // Sets an event flag and signals the semaphore.
 
-   enum { networkLedId = 1,
-          cdLedId      = 3,
-          statusLedId  = 2 };
+   enum { networkLedId = 0b1000,
+          cdLedId      = 0b100000,
+          statusLedId  = 0b10000 };
 
  private:
    FrontPanel();
    // Constructor: initializes the semaphore the leds and the event flags.
    void doit();
    // Main thread loop of FrontPanel. Initializes the led timers and goes into
-   // a perptual loop where it awaits the semaphore. When it wakes it checks 
-   // the event flags to see which leds to manipulate and manipulates them. 
+   // a perptual loop where it awaits the semaphore. When it wakes it checks
+   // the event flags to see which leds to manipulate and manipulates them.
 
    Semaphore* mySemaphore;
 
@@ -172,4 +172,3 @@ class FrontPanel : public Job
 
 #endif
 /****************** END OF FILE frontpanel.hh ********************************/
-

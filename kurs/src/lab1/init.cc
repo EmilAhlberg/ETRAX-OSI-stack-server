@@ -1,20 +1,20 @@
 /*!**************************************************************************
 *! FILE NAME  : init.cc
-*!                                                            
+*!
 *! DESCRIPTION: The implementation of initialisation for the
 *!              CD server
-*!              
+*!
 *!---------------------------------------------------------------------------
-*! HISTORY                                                    
-*!                                                            
-*! DATE         NAME               CHANGES                       
-*! ----         ----               -------                       
+*! HISTORY
+*!
+*! DATE         NAME               CHANGES
+*! ----         ----               -------
 *! Jul 27 1995  Stefan S           Initial version
 *! Sep 05 1995  Stefan S           PseudoDirectoryFilePointer->
 *!                                   DirectoryFilePointer
 *! Dec 08 1995  Patrik B           Creates  N_CBLOCKS_AND_THREADS threads.
 *!                                 Changed stack size to 2000 per thread.
-*! Feb 13 1996  Sven Ekstrom       Changed use of N_CBLOCKS_AND_THREADS to 
+*! Feb 13 1996  Sven Ekstrom       Changed use of N_CBLOCKS_AND_THREADS to
 *!                                 N_THREADS.
 *! Apr  4 1996  Fredrik Norrman    Changed stack size to 2500
 *! Apr 15 1996  Stefan S           cast enum to int in << expression
@@ -25,7 +25,7 @@
 *! May 31 1996  Jens Johansson     SCSI for Daisy now included.
 *! Jun 19 1996  Stefan Jonsson     Added OEM specific mib-file name.
 *! Jul  3 1996  Per Flock          Added 'resourceType' to 'create(...)'
-*! Jul 17 1996  Jens Johansson     Added 'scsi.ini' file for INA. 
+*! Jul 17 1996  Jens Johansson     Added 'scsi.ini' file for INA.
 *! Jul 24 1996  Per Flock          Added HTML configuration
 *! Aug  5 1996  Niklas Jonsson     Added images directory and cd/index.htm
 *! Aug 13 1996  Niklas Jonsson     Images now use PseudoFileableData
@@ -37,7 +37,7 @@
 *! Sep 13 1996  Christian Matson   Added HTTP stuff.
 *! Sep 19 1996  Niklas Jonsson     And more HTTP changes.
 *! Sep 24 1996  Niklas Jonsson     Made 'html' and 'images' as directories.
-*! Sep 25 1996  Per Flock          Moved images and info.htm to a new direcory 
+*! Sep 25 1996  Per Flock          Moved images and info.htm to a new direcory
 *!                                 named /config/public/
 *! Oct  1 1996  Niklas Jonsson     Added diagnostics HTML page
 *! Oct  2 1996  Christian Matson   Removed creation of readme.txt file.
@@ -138,7 +138,7 @@ thread_main(void)
           timerObj->timerExpired();
         }
         break;
- 
+
         case THREAD_RESCHEDULE:
         {
           reschedule();
@@ -156,4 +156,3 @@ thread_main(void)
     }
   }
 }
-
