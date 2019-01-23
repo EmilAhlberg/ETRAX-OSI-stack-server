@@ -46,7 +46,7 @@ class LED
    byte myLedBit;
    // bitmask containing a '1' in the bit position for this led in the led
    // register.
-   static byte writeOutRegisterShadow = 0x38;
+   static byte writeOutRegisterShadow;
    // Shadow of the content of the led register. Must be used to manipulate
    // one led without reseting the others.
 };
@@ -144,9 +144,9 @@ class FrontPanel : public Job
    // Called from the timers to notify that a timer has expired.
    // Sets an event flag and signals the semaphore.
 
-   enum { networkLedId = 0b1000,
-          cdLedId      = 0b100000,
-          statusLedId  = 0b10000 };
+   enum { networkLedId = 8,
+          cdLedId      = 32,
+          statusLedId  = 16 };
 
  private:
    FrontPanel();

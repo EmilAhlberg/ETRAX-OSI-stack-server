@@ -28,6 +28,7 @@
 LED::LED(byte theLedNumber) {
   myLedBit = theLedNumber;
   iAmOn = false;
+  writeOutRegisterShadow = 0x38;
 }
 // Constructor: initiate the bitmask 'myLedBit'.
 
