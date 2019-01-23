@@ -33,15 +33,15 @@ LED::LED(byte theLedNumber) {
 // Constructor: initiate the bitmask 'myLedBit'.
 
 void LED::on() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow &= ~led;
+    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow &= ~myLedBit;
 }
 // turn this led on
 void LED::off() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow |= led;
+    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow |= myLedBit;
 }
 // turn this led off
 void LED::toggle() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow ^= led;
+    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow ^= myLedBit;
 }
 // toggle this led
 
@@ -54,13 +54,13 @@ void NetworkLEDTimer::start() {
 }
 
 void NetworkLEDTimer::timeOut() {
-    FrontPanel::instance().notifyLedEvent(FrontPanel::instance().networkLedId));
+    FrontPanel::instance().notifyLedEvent(FrontPanel::instance().networkLedId);
 }
 
 
 
 CDLEDTimer::CDLEDTimer(Duration blinkPeriod) {
-    startPeriodicTimer(blinkPeriod);
+    this->startPeriodicTimer(blinkPeriod);
 }
 
 void CDLEDTimer::timerNotify() {
@@ -69,7 +69,7 @@ void CDLEDTimer::timerNotify() {
 
 
 StatusLEDTimer::StatusLEDTimer(Duration blinkPeriod) {
-    startPeriodicTimer(blinkPeriod);
+    this->startPeriodicTimer(blinkPeriod);
 }
 
 void StatusLEDTimer::timerNotify() {
@@ -89,11 +89,11 @@ FrontPanel::instance()
 FrontPanel::FrontPanel()
 {
     mySemaphore = Semaphore::createQueueSemaphore("name", 0);
-    myNetworkLED = new LED(networkLedId);
+    myNetworkLED = new LED((byte) networkLedId);
     netLedEvent = false;
-    myCDLED = new LED(cdLedId);
+    myCDLED = new LED((byte) cdLedId);
     cdLedEvent = false;
-    myStatusLED = new LED(statusLedId);
+    myStatusLED = new LED((byte) statusLedId);
     statusLedEvent = false;
 }
 
@@ -108,15 +108,15 @@ FrontPanel::doit()
     {
         mySemaphore->wait();
         if(netLedEvent) {
-            myNetworkLED.off();
+            myNetworkLED->off();
             netLedEvent = false;
         }
         else if(cdLedEvent) {
-            myCDLED.toggle();
+            myCDLED->toggle();
             cdLedEvent = false;
         }
         else if(statusLedEvent) {
-            myStatusLED.toggle();
+            myStatusLED->toggle();
             statusLedEvent = false;
         }
     }
@@ -125,8 +125,8 @@ FrontPanel::doit()
 void
 FrontPanel::packetReceived()
 {
-    myNetworkLED.on();
-    myNetworkLEDTimer.start();
+    myNetworkLED->on();
+    myNetworkLEDTimer->start();
 }
 
 void
