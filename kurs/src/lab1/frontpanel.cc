@@ -60,7 +60,8 @@ void NetworkLEDTimer::timeOut() {
 
 
 CDLEDTimer::CDLEDTimer(Duration blinkPeriod) {
-    this->startPeriodicTimer(blinkPeriod);
+    this->timerInterval(blinkPeriod);
+    this->startPeriodicTimer();
 }
 
 void CDLEDTimer::timerNotify() {
@@ -69,7 +70,8 @@ void CDLEDTimer::timerNotify() {
 
 
 StatusLEDTimer::StatusLEDTimer(Duration blinkPeriod) {
-    this->startPeriodicTimer(blinkPeriod);
+    this->timerInterval(blinkPeriod);
+    this->startPeriodicTimer();
 }
 
 void StatusLEDTimer::timerNotify() {
@@ -89,11 +91,11 @@ FrontPanel::instance()
 FrontPanel::FrontPanel()
 {
     mySemaphore = Semaphore::createQueueSemaphore("name", 0);
-    myNetworkLED = new LED((byte) networkLedId);
+    myNetworkLED = (* (new LED((unsigned char) networkLedId)));
     netLedEvent = false;
-    myCDLED = new LED((byte) cdLedId);
+    myCDLED =  (* (new LED((unsigned char) cdLedId)));
     cdLedEvent = false;
-    myStatusLED = new LED((byte) statusLedId);
+    myStatusLED =  (* (new LED((unsigned char) statusLedId)));
     statusLedEvent = false;
 }
 
@@ -108,15 +110,15 @@ FrontPanel::doit()
     {
         mySemaphore->wait();
         if(netLedEvent) {
-            myNetworkLED->off();
+            myNetworkLED.off();
             netLedEvent = false;
         }
         else if(cdLedEvent) {
-            myCDLED->toggle();
+            myCDLED.toggle();
             cdLedEvent = false;
         }
         else if(statusLedEvent) {
-            myStatusLED->toggle();
+            myStatusLED.toggle();
             statusLedEvent = false;
         }
     }
@@ -125,7 +127,7 @@ FrontPanel::doit()
 void
 FrontPanel::packetReceived()
 {
-    myNetworkLED->on();
+    myNetworkLED.on();
     myNetworkLEDTimer->start();
 }
 
