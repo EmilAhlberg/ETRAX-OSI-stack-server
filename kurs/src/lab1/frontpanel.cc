@@ -24,24 +24,24 @@
 
 //----------------------------------------------------------------------------
 //
+byte LED::writeOutRegisterShadow = 0x38;
 
 LED::LED(byte theLedNumber) {
   myLedBit = theLedNumber;
   iAmOn = false;
-  writeOutRegisterShadow = 0x38;
 }
 // Constructor: initiate the bitmask 'myLedBit'.
 
 void LED::on() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow &= ~myLedBit;
+    *(VOLATILE byte*)0x80000000 = LED::writeOutRegisterShadow &= ~myLedBit;
 }
 // turn this led on
 void LED::off() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow |= myLedBit;
+    *(VOLATILE byte*)0x80000000 = LED::writeOutRegisterShadow |= myLedBit;
 }
 // turn this led off
 void LED::toggle() {
-    *(VOLATILE byte*)0x80000000 = writeOutRegisterShadow ^= myLedBit;
+    *(VOLATILE byte*)0x80000000 = LED::writeOutRegisterShadow ^= myLedBit;
 }
 // toggle this led
 
@@ -88,14 +88,14 @@ FrontPanel::instance()
   return myInstance;
 }
 
-FrontPanel::FrontPanel()
+FrontPanel::FrontPanel() :
+  myNetworkLED(LED::LED(networkLedId)),
+  myCDLED(LED::LED(cdLedId)),
+  myStatusLED(LED::LED(statusLedId))
 {
     mySemaphore = Semaphore::createQueueSemaphore("name", 0);
-    myNetworkLED = (* (new LED((unsigned char) networkLedId)));
     netLedEvent = false;
-    myCDLED =  (* (new LED((unsigned char) cdLedId)));
     cdLedEvent = false;
-    myStatusLED =  (* (new LED((unsigned char) statusLedId)));
     statusLedEvent = false;
 }
 
@@ -103,8 +103,8 @@ void
 FrontPanel::doit()
 {
     myNetworkLEDTimer = new NetworkLEDTimer(10);
-    myCDLEDTimer = new CDLEDTimer(10);
-    myStatusLEDTimer = new StatusLEDTimer(10);
+    myCDLEDTimer = new CDLEDTimer(100);
+    myStatusLEDTimer = new StatusLEDTimer(20);
 
     while(true)
     {
