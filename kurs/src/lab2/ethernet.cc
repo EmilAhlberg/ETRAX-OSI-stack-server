@@ -26,7 +26,7 @@ extern "C"
 #include "ethernet.hh"
 #include "llc.hh"
 
-//#define D_ETHER
+#define D_ETHER
 #ifdef D_ETHER
 #define trace cout
 #else
@@ -42,7 +42,7 @@ static bool bufferFullCondition = FALSE;    /* TRUE when buffer is full   */
 
 //----------------------------------------------------------------------------
 //
-Ethernet::Ethernet() : myEthernetAddress(9, 5, 0, 5, 3, 1)
+Ethernet::Ethernet() : myEthernetAddress(new EthernetAddress(9, 5, 0, 5, 3, 1))
 {
   trace << "Ethernet created." << endl;
   nextRxPage = 0;
@@ -76,12 +76,16 @@ Ethernet::myAddress()
 void
 Ethernet::initMemory()
 {
-  int page;
+  int page = 0;
   BufferPage* aPointer;
 
   trace << "initMemory" << endl;
 
-  
+  for (page = 0; page < rxBufferPages; page++) {
+    aPointer = (BufferPage*)(rxStartAddress + page*256);
+    aPointer = new BufferPage();
+    aPointer->statusCommand = 0;
+  }
   // STUFF: Set status byte on each page to 0 here!
   // Shall be done for both rx buffer and tx buffer.
 
@@ -242,36 +246,37 @@ ethernet_interrupt()
 bool
 Ethernet::getReceiveBuffer()
 {
-//   // STUFF: lots to do here!
-//   // The first page in the received packet is given by nextRxPage.
-//   // The first page starts at address 'rxStartAddress + (nextRxPage * 256)',
-//   // right?
-//
-//   if ((/* the status byte */ == 0x01) || // Packet available
-//       (/* the status byte */ == 0x03))   // Packet available and buffer full
-//   {
-//     // use endptr to find out where the packet ends, and if it is wrapped.
-//     if (/* Not wrapped */)
-//     {
-//       // one chunk of data
-//       data1   = /* ? */ ;
-//       length1 = /* ? */ ;
-//       data2   = NULL;
-//       length2 = 0;
-//     }
-//     else
-//     {
-//       // two chunks of data
-//       data1   = /* ? */ ;
-//       length1 = /* ? */ ;
-//       data2   = /* ? */ ;
-//       length2 = /* ? */ ;
-//     }
-//     return true;
-//   }
-// #ifdef D_ETHER
-//   printf("No packet found.\r\n"); // cannot use cout in interrupt context...
-// #endif
+  // STUFF: lots to do here!
+  // The first page in the received packet is given by nextRxPage.
+  // The first page starts at address 'rxStartAddress + (nextRxPage * 256)',
+  // right?
+  BufferPage* currentPage = (BufferPage*)(rxStartAddress + (nextRxPage * 256));
+
+  if ((currentPage->statusCommand == 0x01) || // Packet available
+      (currentPage->statusCommand == 0x03))   // Packet available and buffer full
+  {
+    // use endptr to find out where the packet ends, and if it is wrapped.
+    if (currentPage->endPointer > (udword)currentPage)
+    {
+      // one chunk of data
+      data1   = (byte*)((udword)(currentPage)+4);
+      length1 = (udword) (currentPage->endPointer - ((udword)(currentPage)+4));
+      data2   = NULL;
+      length2 = 0;
+    }
+    else
+    {
+      // two chunks of data
+      data1   = (byte*)((udword)(currentPage)+4);
+      length1 = (udword) (rxBufferOffset - ((udword)(currentPage)+4));
+      data2   = (byte*)rxStartAddress;
+      length2 = currentPage->endPointer - rxStartAddress;
+    }
+    return true;
+  }
+#ifdef D_ETHER
+  printf("No packet found.\r\n"); // cannot use cout in interrupt context...
+#endif
   return false;
 }
 
