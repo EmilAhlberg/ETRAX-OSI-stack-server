@@ -42,7 +42,7 @@ static bool bufferFullCondition = FALSE;    /* TRUE when buffer is full   */
 
 //----------------------------------------------------------------------------
 //
-Ethernet::Ethernet() : myEthernetAddress(new EthernetAddress(9, 5, 0, 5, 3, 1))
+Ethernet::Ethernet() : myEthernetAddress(new EthernetAddress(0, 0x95, 0x05, 0x31,0x28 ,0x93))
 {
   trace << "Ethernet created." << endl;
   nextRxPage = 0;
@@ -252,6 +252,8 @@ Ethernet::getReceiveBuffer()
   // right?
   BufferPage* currentPage = (BufferPage*)(rxStartAddress + (nextRxPage * 256));
 
+  cout << "status command" << currentPage->statusCommand << "!" << endl;
+
   if ((currentPage->statusCommand == 0x01) || // Packet available
       (currentPage->statusCommand == 0x03))   // Packet available and buffer full
   {
@@ -275,7 +277,7 @@ Ethernet::getReceiveBuffer()
     return true;
   }
 #ifdef D_ETHER
-  printf("No packet found.\r\n"); // cannot use cout in interrupt context...
+  trace << "No packet found.\r\n"; // cannot use cout in interrupt context...
 #endif
   return false;
 }
@@ -363,6 +365,7 @@ Ethernet::decodeReceivedPacket()
     memcpy((wrappedPacket + length1), data2, length2);
     // STUFF: Create an EternetInPacket
   }
+  // returnRXBuffer();
   // STUFF: Create and schedule an EthernetJob to decode the EthernetInPacket
 }
 
