@@ -9,7 +9,11 @@
 /****************** INCLUDE FILES SECTION ***********************************/
 
 #include "compiler.h"
-
+/**
+#include "sp_alloc.h"
+#include "system.h"
+#include "osys.h"
+*/
 #include "iostream.hh"
 #include "frontpanel.hh"
 
@@ -89,6 +93,7 @@ FrontPanel::instance()
 }
 
 FrontPanel::FrontPanel() :
+  Job(),
   myNetworkLED(LED::LED(networkLedId)),
   myCDLED(LED::LED(cdLedId)),
   myStatusLED(LED::LED(statusLedId))
@@ -97,6 +102,7 @@ FrontPanel::FrontPanel() :
     netLedEvent = false;
     cdLedEvent = false;
     statusLedEvent = false;
+    Job::schedule(this);
 }
 
 void
@@ -109,11 +115,11 @@ FrontPanel::doit()
     while(true)
     {
         mySemaphore->wait();
-        if(netLedEvent) {
+      if(netLedEvent) {
             myNetworkLED.off();
             netLedEvent = false;
         }
-        else if(cdLedEvent) {
+         if(cdLedEvent) {
             myCDLED.toggle();
             cdLedEvent = false;
         }
@@ -127,7 +133,9 @@ FrontPanel::doit()
 void
 FrontPanel::packetReceived()
 {
+    cout << "Packet received." << endl;
     myNetworkLED.on();
+    //ax_printf("\r\n\r\nPacket received.\r\n");
     myNetworkLEDTimer->start();
 }
 

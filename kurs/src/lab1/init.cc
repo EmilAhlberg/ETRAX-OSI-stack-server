@@ -147,6 +147,7 @@ thread_main(void)
 
         case THREAD_PACKET_RECEIVED:
         {
+          FrontPanel::instance().packetReceived();
         }
         break;
 
