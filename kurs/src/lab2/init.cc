@@ -1,6 +1,6 @@
 /*!**************************************************************************
 *! FILE NAME  : init.cc
-*!                                                            
+*!
 *! DESCRIPTION: The implementation of initialisation for the
 *!              CD server
 *!
@@ -71,7 +71,7 @@ thread_main(void)
   initJob();
   FrontPanel::instance();
   Ethernet::instance();
-  
+
   while (1)
   {
     mail_struct  msg;
@@ -85,7 +85,7 @@ thread_main(void)
           timerObj->timerExpired();
         }
         break;
- 
+
        case THREAD_RESCHEDULE:
        {
          reschedule();
@@ -104,4 +104,3 @@ thread_main(void)
     }
   }
 }
-

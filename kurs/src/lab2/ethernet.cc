@@ -42,14 +42,12 @@ static bool bufferFullCondition = FALSE;    /* TRUE when buffer is full   */
 
 //----------------------------------------------------------------------------
 //
-Ethernet::Ethernet()
+Ethernet::Ethernet() : myEthernetAddress(9, 5, 0, 5, 3, 1)
 {
   trace << "Ethernet created." << endl;
   nextRxPage = 0;
   nextTxPage = 0;
-  processingPacket = FALSE;  
-
-  // STUFF: Set myEthernetAddress to your "personnummer" here!
+  processingPacket = FALSE;
 
   this->initMemory();
   this->initEtrax();
@@ -83,9 +81,10 @@ Ethernet::initMemory()
 
   trace << "initMemory" << endl;
 
+  
   // STUFF: Set status byte on each page to 0 here!
   // Shall be done for both rx buffer and tx buffer.
-  
+
 }
 
 //----------------------------------------------------------------------------
@@ -95,10 +94,10 @@ Ethernet::initEtrax()
 {
   trace << "initEtrax" << endl;
   DISABLE_SAVE();
-  
+
   *(volatile byte *)R_TR_MODE1 = (byte)0x20;
   *(volatile byte *)R_ANALOG   = (byte)0x00;
-  
+
   *(volatile byte *)R_TR_START = (byte)0x00;
   // First page in the transmit buffer.
   *(volatile byte *)R_TR_POS   = (byte)0x00;
@@ -114,7 +113,7 @@ Ethernet::initEtrax()
   *(volatile byte *)R_RT_SIZE = (byte)0x0a;
   // rx and tx buffer size 8kbyte (page 41, 43)
   // rx: xxxxxx10 OR tx: xxxx10xx = xxxx1010
-  
+
   *(volatile byte *)R_REC_END  = (byte)0xff;
   // Last page _in_ the receive buffer.
   *(volatile byte *)R_REC_POS  = (byte)0x04;
@@ -123,10 +122,10 @@ Ethernet::initEtrax()
   // Bit:      20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
   // REC_END                   1  1  1  1  1  1 1 1                 last page in buffer is 31 (!)
   // R_REC_POS  0  0  0  0  0  1  0  0                              0x40008000
-  // 
+  //
   // REC_END = 0x3f = bit 15:8 of (rxStartAddress + 31*256).
   // R_REC_POS = 0x01 = bit 20:13 of rxStartAddress.
-  
+
   *(volatile byte *)R_GA0 = 0xff;     /* Enable ALL multicast */
   *(volatile byte *)R_GA1 = 0xff;
   *(volatile byte *)R_GA2 = 0xff;
@@ -134,14 +133,14 @@ Ethernet::initEtrax()
   *(volatile byte *)R_GA4 = 0xff;
   *(volatile byte *)R_GA5 = 0xff;
   *(volatile byte *)R_GA6 = 0xff;
-  *(volatile byte *)R_GA7 = 0xff; 
+  *(volatile byte *)R_GA7 = 0xff;
 
   // Reverse the bit order of the ethernet address to etrax.
   byte aAddr[EthernetAddress::length];
   myEthernetAddress->writeTo((byte*)&aAddr);
-  
+
   byte aReverseAddr[EthernetAddress::length];
-  
+
   for (int i = 0; i < EthernetAddress::length; i++)
   {
     aReverseAddr[i] = 0;
@@ -152,18 +151,18 @@ Ethernet::initEtrax()
       aAddr[i] = aAddr[i] >> 1;
     }
   }
-  
+
   *(volatile byte *)R_MA0 = aReverseAddr[0];     /* Send this first */
-  *(volatile byte *)R_MA1 = aReverseAddr[1];    
+  *(volatile byte *)R_MA1 = aReverseAddr[1];
   *(volatile byte *)R_MA2 = aReverseAddr[2];
   *(volatile byte *)R_MA3 = aReverseAddr[3];
   *(volatile byte *)R_MA4 = aReverseAddr[4];
-  *(volatile byte *)R_MA5 = aReverseAddr[5];      /* Send this last */  
+  *(volatile byte *)R_MA5 = aReverseAddr[5];      /* Send this last */
 
-  *(volatile byte *)R_TR_MODE1  = 0x30;   /* Ethernet mode, no loop back */ 
+  *(volatile byte *)R_TR_MODE1  = 0x30;   /* Ethernet mode, no loop back */
   *(volatile byte *)R_ETR_MASKC = 0xbf;   /* Disable all other etr interrupts*/
   *(volatile byte *)R_BUF_MASKS = 0x0f;   /* Enable all buf. interrupts */
-   
+
   *(volatile byte *)R_TR_MODE2 = 0x14;    /* Start network interface */
 
   do { asm volatile ("movem sp,[0xc0002fff]");} while (FALSE);
@@ -175,7 +174,7 @@ Ethernet::initEtrax()
 
 //----------------------------------------------------------------------------
 //
-extern "C" void 
+extern "C" void
 ethernet_interrupt()
 {
   byte bufferStatus = *(volatile byte *)R_BUF_STATUS;
@@ -198,7 +197,7 @@ ethernet_interrupt()
       {
         processingPacket = TRUE;
         os_int_send(OTHER_INT_PROG, THREAD_MAIN, THREAD_PACKET_RECEIVED,
-                    NO_DATA, 0, NULL);  
+                    NO_DATA, 0, NULL);
       }
       else
       {
@@ -218,24 +217,24 @@ ethernet_interrupt()
     /* Disable further interrupts until we */
     /* are given space in return_rxbuf()   */
     *(volatile byte*)R_REC_MODE = 0x02;
-    /* Acknowledge buffer full interrupt */ 
+    /* Acknowledge buffer full interrupt */
     bufferFullCondition = TRUE;
   }
-  
+
   /*--------------------------------------------------------------------------*/
   /* 3. This interrupt means that all packets in ring buffer have been sent   */
-  if (BITTST(bufferStatus, BUF__PACKET_TR)) 
+  if (BITTST(bufferStatus, BUF__PACKET_TR))
   {
     *(volatile byte *)R_TR_CMD = 0;
     /* Clear interrupt, nothing else */
   }
-  
+
   /*--------------------------------------------------------------------------*/
   /* 4. If we get an excessive retry interrupt, we reset the transmitter.     */
   if (BITTST(bufferStatus, BUF__ABORT_INT))
   {
     Ethernet::instance().resetTransmitter();
-  }  
+  }
 }
 
 //----------------------------------------------------------------------------
@@ -243,36 +242,36 @@ ethernet_interrupt()
 bool
 Ethernet::getReceiveBuffer()
 {
-  // STUFF: lots to do here!
-  // The first page in the received packet is given by nextRxPage.
-  // The first page starts at address 'rxStartAddress + (nextRxPage * 256)',
-  // right?
-  
-  if ((/* the status byte */ == 0x01) || // Packet available
-      (/* the status byte */ == 0x03))   // Packet available and buffer full
-  {
-    // use endptr to find out where the packet ends, and if it is wrapped.
-    if (/* Not wrapped */)
-    {
-      // one chunk of data
-      data1   = /* ? */ ;
-      length1 = /* ? */ ;
-      data2   = NULL;
-      length2 = 0;
-    }
-    else
-    {
-      // two chunks of data
-      data1   = /* ? */ ;
-      length1 = /* ? */ ;
-      data2   = /* ? */ ;
-      length2 = /* ? */ ;
-    }
-    return true;
-  }
-#ifdef D_ETHER
-  printf("No packet found.\r\n"); // cannot use cout in interrupt context...
-#endif
+//   // STUFF: lots to do here!
+//   // The first page in the received packet is given by nextRxPage.
+//   // The first page starts at address 'rxStartAddress + (nextRxPage * 256)',
+//   // right?
+//
+//   if ((/* the status byte */ == 0x01) || // Packet available
+//       (/* the status byte */ == 0x03))   // Packet available and buffer full
+//   {
+//     // use endptr to find out where the packet ends, and if it is wrapped.
+//     if (/* Not wrapped */)
+//     {
+//       // one chunk of data
+//       data1   = /* ? */ ;
+//       length1 = /* ? */ ;
+//       data2   = NULL;
+//       length2 = 0;
+//     }
+//     else
+//     {
+//       // two chunks of data
+//       data1   = /* ? */ ;
+//       length1 = /* ? */ ;
+//       data2   = /* ? */ ;
+//       length2 = /* ? */ ;
+//     }
+//     return true;
+//   }
+// #ifdef D_ETHER
+//   printf("No packet found.\r\n"); // cannot use cout in interrupt context...
+// #endif
   return false;
 }
 
@@ -288,13 +287,13 @@ Ethernet::returnRXBuffer()
 
   uword endInBuffer = aPage->endPointer - rxBufferOffset;
   // end pointer from start of receive buffer. Wraps at rxBufferSize.
-  
+
   if ((aPage->endPointer - rxBufferOffset) < (nextRxPage * 256))
   {
     trace << "Delete wrap copy" << endl;
     delete [] wrappedPacket;
   }
-  
+
   // The R_REC_END should point to the begining of the page addressed by
   // endInBuffer.
   uword recEnd = (endInBuffer + rxBufferOffset) >> 8;
@@ -317,7 +316,7 @@ Ethernet::returnRXBuffer()
   nextRxPage = (endPage + 1) % rxBufferPages;
   trace << " endPage " << hex << endPage << " nextRxPage "
         << (uword)nextRxPage << endl;
-  
+
   // Process next packet (if there is one ready)
   if (this->getReceiveBuffer())
   {
@@ -325,7 +324,7 @@ Ethernet::returnRXBuffer()
     processingPacket = TRUE;
     RESTORE();
     os_send(OTHER_INT_PROG, THREAD_MAIN, THREAD_PACKET_RECEIVED,
-                NO_DATA, 0, NULL);  
+                NO_DATA, 0, NULL);
   }
   else
   {
@@ -341,6 +340,8 @@ Ethernet::decodeReceivedPacket()
 {
   trace << "Found packet at:" << hex << (udword)data1 << dec << endl;
   // STUFF: Blink packet LED
+  FrontPanel::instance().packetReceived();
+
   // STUFF: Create an EternetInPacket, two cases:
   if (data2 == NULL)
   {
@@ -390,7 +391,7 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
     {
       sendBoundary = txBufferPages - 1;  /* Set to last page */
     }
-    
+
     availablePages = sendBoundary - nextTxPage;
     /* In 256 byte buffers */
     if (availablePages < 0)
@@ -398,9 +399,9 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
       availablePages += txBufferPages;
       /* Boundary index is lower than nextTxPage */
     }
-#ifdef ETHER_D    
+#ifdef ETHER_D
     ax_printf("sendBoundary:%2d, nextTxPage:%2d, availablePages:%2d, "
-              "packet:%4d bytes = %d pages\n", sendBoundary, 
+              "packet:%4d bytes = %d pages\n", sendBoundary,
               nextTxPage, availablePages, theLength, nOfBufferPagesNeeded);
 #endif
     if((uword)availablePages < nOfBufferPagesNeeded)
@@ -414,7 +415,7 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
         cout << "Transmit buffer full for 3 seconds. Resetting.\n";
         this->resetTransmitter();
         timeOut = 0;
-      }      
+      }
     }
   }
   while((uword)availablePages < nOfBufferPagesNeeded);
@@ -425,29 +426,29 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
   // accordingly.
 
   // STUFF: Find the first available page in the transmitt buffer
-  
+
   if (nextTxPage + nOfBufferPagesNeeded <= txBufferPages)
   {
     // STUFF: Copy the packet to the transmitt buffer
     // Simple case, no wrap
-    // Pad undersized packets 
+    // Pad undersized packets
   }
   else
   {
     trace << "Warped transmission" << endl;
     // STUFF: Copy the two parts into the transmitt buffer, cannot be undersized
   }
-  
+
   /* Now we can tell Etrax to send this packet. Unless it is already      */
   /* busy sending packets. In which case it will send this automatically  */
 
   // STUFF: Advance nextTxPage here!
-  
+
   // Tell Etrax there isn't a packet at nextTxPage.
   BufferPage* nextPage = (BufferPage*)(txStartAddress + (nextTxPage * 256));
   nextPage->statusCommand = 0;
   nextPage->endPointer = 0x00;
-  
+
   // STUFF: Tell Etrax to start sending by setting the 'statusCommand' byte of
   // the first page in the packet to 0x10!
 
@@ -529,7 +530,7 @@ ostream& operator <<(ostream& theStream, const EthernetAddress& theAddress)
 {
   static char aString[6*2+1];
   int i;
-  
+
   aString[0] = '\0';
   for (i = 0; i < 5; i++)
   {
@@ -547,4 +548,3 @@ EthernetHeader::EthernetHeader()
 }
 
 /****************** END OF FILE Ethernet.cc *********************************/
-
