@@ -25,8 +25,10 @@ extern "C"
 #include "frontpanel.hh"
 #include "ethernet.hh"
 #include "llc.hh"
+#include "inpacket.hh"
+#include "sp_alloc.h"
 
-#define D_ETHER
+//#define D_ETHER
 #ifdef D_ETHER
 #define trace cout
 #else
@@ -181,7 +183,12 @@ Ethernet::initEtrax()
 extern "C" void
 ethernet_interrupt()
 {
+//  cout << "INTERRUPT!" << endl;
   byte bufferStatus = *(volatile byte *)R_BUF_STATUS;
+  //cout << "bufferStatus: " << (int) bufferStatus << endl;
+
+  //cout << "Core " << ax_coreleft_total() << endl;
+
   /* Therer are four possible interrupts to handle here: */
   /* 1. Packet received                                  */
   /* 2. Receive buffer full                              */
@@ -194,11 +201,13 @@ ethernet_interrupt()
   if (BITTST(bufferStatus, BUF__PACKET_REC))
   {
     *(volatile byte *)R_REC_MODE = 0x04;
+      //cout << "processingPacket:" << processingPacket << endl;
     // Ack packet received interupt
     if (!processingPacket)
     {
       if (Ethernet::instance().getReceiveBuffer())
       {
+        //cout << "we're in" << endl;
         processingPacket = TRUE;
         os_int_send(OTHER_INT_PROG, THREAD_MAIN, THREAD_PACKET_RECEIVED,
                     NO_DATA, 0, NULL);
@@ -252,7 +261,7 @@ Ethernet::getReceiveBuffer()
   // right?
   BufferPage* currentPage = (BufferPage*)(rxStartAddress + (nextRxPage * 256));
 
-  cout << "status command" << currentPage->statusCommand << "!" << endl;
+  //cout << "status command" << currentPage->statusCommand << "!" << endl;
 
   if ((currentPage->statusCommand == 0x01) || // Packet available
       (currentPage->statusCommand == 0x03))   // Packet available and buffer full
@@ -346,12 +355,14 @@ void
 Ethernet::decodeReceivedPacket()
 {
   trace << "Found packet at:" << hex << (udword)data1 << dec << endl;
-  // STUFF: Blink packet LED
-  FrontPanel::instance().packetReceived();
 
+  FrontPanel::instance().packetReceived();
+    // STUFF: Blink packet LED
+  EthernetInPacket * currentPacket;
   // STUFF: Create an EternetInPacket, two cases:
   if (data2 == NULL)
   {
+    currentPacket = new EthernetInPacket(data1,length1, NULL);
     // STUFF: Create an EternetInPacket
   }
   else
@@ -363,9 +374,12 @@ Ethernet::decodeReceivedPacket()
     wrappedPacket = new byte[length1 + length2];
     memcpy(wrappedPacket, data1, length1);
     memcpy((wrappedPacket + length1), data2, length2);
+    currentPacket = new EthernetInPacket(wrappedPacket, length1 + length2, NULL);
     // STUFF: Create an EternetInPacket
   }
-  // returnRXBuffer();
+   //returnRXBuffer();
+   EthernetJob* job = new EthernetJob(currentPacket);
+   Job::schedule(job);
   // STUFF: Create and schedule an EthernetJob to decode the EthernetInPacket
 }
 
@@ -484,8 +498,34 @@ Ethernet::resetTransmitter()
   }
 }
 
+EthernetJob::EthernetJob(EthernetInPacket* thePacket) : myPacket(thePacket) {}
+
+void EthernetJob::doit() {
+  myPacket->decode();
+  delete myPacket;
+}
+
 // STUFF: Add EthernetJob implementation
 
+EthernetInPacket::EthernetInPacket(byte* theData, udword theLength, InPacket* theFrame)
+: InPacket(theData, theLength, theFrame) {
+
+}
+
+void EthernetInPacket::decode() {
+  myDestinationAddress = EthernetAddress(myData);
+  mySourceAddress = EthernetAddress(myData+6);
+  myTypeLen = (uword) myData+12;
+  LLCInPacket llc((byte*)(myData+14), (udword)(myLength-14), this, myDestinationAddress, mySourceAddress, myTypeLen);
+  llc.decode();
+  Ethernet::instance().returnRXBuffer();
+}
+
+void EthernetInPacket::answer(byte* theData, udword theLength) {
+  cout << "WOW" << endl;
+}
+
+uword EthernetInPacket::headerOffset() { return Ethernet::ethernetHeaderLength; }
 // STUFF: Add EthernetInPacket implementation
 
 //----------------------------------------------------------------------------
@@ -504,6 +544,18 @@ EthernetAddress::EthernetAddress(byte a0, byte a1, byte a2, byte a3, byte a4, by
   myAddress[3] = a3;
   myAddress[4] = a4;
   myAddress[5] = a5;
+}
+
+//----------------------------------------------------------------------------
+//
+EthernetAddress::EthernetAddress(byte *theAddress)
+{
+  myAddress[0] = theAddress[0];
+  myAddress[1] = theAddress[1];
+  myAddress[2] = theAddress[2];
+  myAddress[3] = theAddress[3];
+  myAddress[4] = theAddress[4];
+  myAddress[5] = theAddress[5];
 }
 
 //----------------------------------------------------------------------------

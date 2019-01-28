@@ -4,6 +4,8 @@ init.cc
 
 frontpanel.cc
 ethernet.cc
+llc.cc
+inpacket.cc
 
 system/system.c
 system/xprintf.c

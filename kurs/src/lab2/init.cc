@@ -94,8 +94,8 @@ thread_main(void)
 
        case THREAD_PACKET_RECEIVED:
        {
-         //Ethernet::instance().decodeReceivedPacket();
-         cout << "Packet really received";
+         Ethernet::instance().decodeReceivedPacket();
+         //cout << "Packet really received";
        }
        break;
 

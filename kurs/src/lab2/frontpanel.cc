@@ -133,7 +133,7 @@ FrontPanel::doit()
 void
 FrontPanel::packetReceived()
 {
-    cout << "Packet received." << endl;
+    //cout << "Packet received." << endl;
     myNetworkLED.on();
     //ax_printf("\r\n\r\nPacket received.\r\n");
     myNetworkLEDTimer->start();
