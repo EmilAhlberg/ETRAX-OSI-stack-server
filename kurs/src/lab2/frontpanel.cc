@@ -16,6 +16,8 @@
 */
 #include "iostream.hh"
 #include "frontpanel.hh"
+#include "sp_alloc.h"
+
 
 //#define D_FP
 #ifdef D_FP
@@ -109,7 +111,7 @@ void
 FrontPanel::doit()
 {
     myNetworkLEDTimer = new NetworkLEDTimer(10);
-    myCDLEDTimer = new CDLEDTimer(100);
+    myCDLEDTimer = new CDLEDTimer(200);
     myStatusLEDTimer = new StatusLEDTimer(20);
 
     while(true)
@@ -121,6 +123,7 @@ FrontPanel::doit()
         }
          if(cdLedEvent) {
             myCDLED.toggle();
+            cout << "Core " << ax_coreleft_total() << endl;
             cdLedEvent = false;
         }
         else if(statusLedEvent) {

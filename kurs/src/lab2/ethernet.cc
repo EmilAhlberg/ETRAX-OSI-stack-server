@@ -88,6 +88,11 @@ Ethernet::initMemory()
     aPointer = new BufferPage();
     aPointer->statusCommand = 0;
   }
+  for (page = 0; page < txBufferPages; page++) {
+    aPointer = (BufferPage*)(txStartAddress + page*256);
+    aPointer = new BufferPage();
+    aPointer->statusCommand = 0;
+  }
   // STUFF: Set status byte on each page to 0 here!
   // Shall be done for both rx buffer and tx buffer.
 
@@ -267,22 +272,46 @@ Ethernet::getReceiveBuffer()
       (currentPage->statusCommand == 0x03))   // Packet available and buffer full
   {
     // use endptr to find out where the packet ends, and if it is wrapped.
-    if (currentPage->endPointer > (udword)currentPage)
+    if (currentPage->endPointer - rxBufferOffset + rxStartAddress  > (udword)currentPage)
     {
       // one chunk of data
-      data1   = (byte*)((udword)(currentPage)+4);
-      length1 = (udword) (currentPage->endPointer - ((udword)(currentPage)+4));
+      //cout << "NO WRAP!" << endl;
+      data1   = (byte*)((udword)(currentPage) + commandLength);
+      length1 = (udword) ((udword)currentPage->endPointer - rxBufferOffset + (udword)rxStartAddress -
+       ((udword)(currentPage) + commandLength));
       data2   = NULL;
       length2 = 0;
     }
     else
     {
       // two chunks of data
-      data1   = (byte*)((udword)(currentPage)+4);
-      length1 = (udword) (rxBufferOffset - ((udword)(currentPage)+4));
+      //cout << "WRAP!" << endl;
+      data1   = (byte*)((udword)(currentPage) + commandLength);
+      length1 = (udword) (rxStartAddress + rxBufferSize - ((udword)(currentPage) + commandLength));
       data2   = (byte*)rxStartAddress;
-      length2 = currentPage->endPointer - rxStartAddress;
+      length2 = currentPage->endPointer - rxBufferOffset;
     }
+    /*
+    //cout << currentPage << "#0" << endl;
+    cout << currentPage->data<<"#1" << endl;
+    cout <<"Data1:" << endl;
+    cout << data1<<"#2" << endl;
+    for(int i = 0; i<252; i++) {
+      cout << (int)currentPage->data[i] <<", ";
+    }
+    cout <<"Length1 of Data1:" << endl;
+    for(int i = 0; i<252; i++) {
+      cout << (int)data1[i] <<", ";
+    }
+    cout <<"Length1:" << length1 << endl;
+    for(int i = 0; i<length1; i++) {
+      cout << (int)data1[i] <<", ";
+    }
+    cout <<"Calc" <<endl;
+    cout << (udword)currentPage->endPointer -rxBufferOffset << " " << (udword)rxStartAddress << " " <<((udword)(currentPage)+4);
+    */
+
+    //while(true) {}
     return true;
   }
 #ifdef D_ETHER
@@ -377,7 +406,8 @@ Ethernet::decodeReceivedPacket()
     currentPacket = new EthernetInPacket(wrappedPacket, length1 + length2, NULL);
     // STUFF: Create an EternetInPacket
   }
-   //returnRXBuffer();
+
+
    EthernetJob* job = new EthernetJob(currentPacket);
    Job::schedule(job);
   // STUFF: Create and schedule an EthernetJob to decode the EthernetInPacket
@@ -388,7 +418,7 @@ Ethernet::decodeReceivedPacket()
 void
 Ethernet::transmittPacket(byte *theData, udword theLength)
 {
-  trace << "transmitt" << endl;
+  trace << "transmit" << endl;
   // Make sure the packet fits in the transmitt buffer.
 
   /* If the packet ends at a 256 byte boundary, the next buffer is skipped  */
@@ -447,10 +477,20 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
   // Remember: Undersized packets must be padded! Just advance the end pointer
   // accordingly.
 
+
+  BufferPage* aPage = (BufferPage *)(txStartAddress + (nextTxPage * 256));
   // STUFF: Find the first available page in the transmitt buffer
 
   if (nextTxPage + nOfBufferPagesNeeded <= txBufferPages)
   {
+    aPage = new BufferPage();
+    aPage->statusCommand = 0;
+    aPage->endPointer = (theLength > minPacketLength + ethernetHeaderLength)
+      ? theLength + commandLength
+      : minPacketLength + ethernetHeaderLength + commandLength;
+
+    byte* dataPointer = aPage->data;
+    dataPointer = theData;
     // STUFF: Copy the packet to the transmitt buffer
     // Simple case, no wrap
     // Pad undersized packets
@@ -461,15 +501,28 @@ Ethernet::transmittPacket(byte *theData, udword theLength)
     // STUFF: Copy the two parts into the transmitt buffer, cannot be undersized
   }
 
+  for(int i = 0; i < theLength; i++) {
+    cout << hex << (int)theData[i] << ":";
+  }
+  cout << endl << "aPage DATA" << endl;
+  for(int i = 0; i < 252; i++) {
+    cout << hex << (int)aPage->data[i] << ":";
+  }
+  while(true) {}
+
   /* Now we can tell Etrax to send this packet. Unless it is already      */
   /* busy sending packets. In which case it will send this automatically  */
 
+  nextTxPage += nOfBufferPagesNeeded;
+  nextTxPage %= txBufferPages;
   // STUFF: Advance nextTxPage here!
 
   // Tell Etrax there isn't a packet at nextTxPage.
   BufferPage* nextPage = (BufferPage*)(txStartAddress + (nextTxPage * 256));
   nextPage->statusCommand = 0;
   nextPage->endPointer = 0x00;
+
+  aPage->statusCommand = 0x10;
 
   // STUFF: Tell Etrax to start sending by setting the 'statusCommand' byte of
   // the first page in the packet to 0x10!
@@ -515,14 +568,31 @@ EthernetInPacket::EthernetInPacket(byte* theData, udword theLength, InPacket* th
 void EthernetInPacket::decode() {
   myDestinationAddress = EthernetAddress(myData);
   mySourceAddress = EthernetAddress(myData+6);
-  myTypeLen = (uword) myData+12;
-  LLCInPacket llc((byte*)(myData+14), (udword)(myLength-14), this, myDestinationAddress, mySourceAddress, myTypeLen);
+  myTypeLen = (uword)((int)myData[12]*256 + (int)myData[13]);
+
+  /*if (myDestinationAddress == Ethernet::instance().myAddress()) {
+    for(int i = 0; i < myLength; i++)
+      cout << hex << (int)myData[i] << ":";
+  }*/
+  LLCInPacket llc((byte*)(myData+Ethernet::ethernetHeaderLength),
+    (udword)(myLength-Ethernet::ethernetHeaderLength-Ethernet::crcLength),
+    this,
+    myDestinationAddress,
+    mySourceAddress,
+    myTypeLen
+  );
+
   llc.decode();
   Ethernet::instance().returnRXBuffer();
 }
 
 void EthernetInPacket::answer(byte* theData, udword theLength) {
-  cout << "WOW" << endl;
+  byte* destPointer = myData-Ethernet::ethernetHeaderLength;
+  destPointer[12] = myTypeLen;
+  mySourceAddress.writeTo(theData-8);
+  myDestinationAddress.writeTo(theData-14);
+  Ethernet::instance().transmittPacket(destPointer, theLength+Ethernet::ethernetHeaderLength);
+  //MEMORY LEAK 128 bytes/ping
 }
 
 uword EthernetInPacket::headerOffset() { return Ethernet::ethernetHeaderLength; }
@@ -550,7 +620,7 @@ EthernetAddress::EthernetAddress(byte a0, byte a1, byte a2, byte a3, byte a4, by
 //
 EthernetAddress::EthernetAddress(byte *theAddress)
 {
-  myAddress[0] = theAddress[0];
+  myAddress[0] = theAddress[0]; //Flippa dessa?
   myAddress[1] = theAddress[1];
   myAddress[2] = theAddress[2];
   myAddress[3] = theAddress[3];
