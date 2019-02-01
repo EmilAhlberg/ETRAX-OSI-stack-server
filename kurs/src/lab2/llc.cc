@@ -85,6 +85,7 @@ LLCInPacket::decode()
       uword oldSum = *(uword*)(myData + 22);
 	  uword newSum = oldSum + 0x8;
       *(uword*)(aReply + 22) = newSum;
+
 	  this->answer(aReply, myLength);
 	}
   }
