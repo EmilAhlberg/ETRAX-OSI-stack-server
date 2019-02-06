@@ -39,7 +39,7 @@ extern "C"
 
 static bool processingPacket    = FALSE;    /* TRUE when LLC has a packet */
 static bool bufferFullCondition = FALSE;    /* TRUE when buffer is full   */
-
+static bool isInitialized = FALSE;
 /****************** Ethernet DEFINITION SECTION *************************/
 
 //----------------------------------------------------------------------------
@@ -50,10 +50,10 @@ Ethernet::Ethernet() : myEthernetAddress(new EthernetAddress(0, 0x95, 0x05, 0x31
   nextRxPage = 0;
   nextTxPage = 0;
   processingPacket = FALSE;
-
   this->initMemory();
   this->initEtrax();
   cout << "My node address is " << this->myAddress() << endl;
+  isInitialized = TRUE;
 }
 
 //----------------------------------------------------------------------------
@@ -186,6 +186,8 @@ Ethernet::initEtrax()
 extern "C" void
 ethernet_interrupt()
 {
+  if (!isInitialized)
+    return;
   byte bufferStatus = *(volatile byte *)R_BUF_STATUS;
   //cout << "bufferStatus: " << (int) bufferStatus << endl;
 

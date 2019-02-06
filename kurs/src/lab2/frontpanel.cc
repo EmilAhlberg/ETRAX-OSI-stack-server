@@ -123,7 +123,7 @@ FrontPanel::doit()
         }
          if(cdLedEvent) {
             myCDLED.toggle();
-            cout << "Core " << ax_coreleft_total() << endl;
+            //cout << "Core " << ax_coreleft_total() << endl;
             cdLedEvent = false;
         }
         else if(statusLedEvent) {
