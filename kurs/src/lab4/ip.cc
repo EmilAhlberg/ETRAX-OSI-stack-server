@@ -7,7 +7,7 @@ extern "C"
 #include "system.h"
 }
 
-
+#include "iostream.hh"
 #include "ipaddr.hh"
 #include "ip.hh"
 #include "icmp.hh"
@@ -65,16 +65,18 @@ void IPInPacket::decode() {
   myIdentification = ipHeader->identification;
   if (ipHeader-> destinationIPAddress == IP::instance().myAddress()) {
     //Check if the packet was intended for us.
-
-
+    int padding = 0;
+    if (HILO(ipHeader->totalLength) < Ethernet::minPacketLength)
+        padding = Ethernet::minPacketLength - HILO(ipHeader->totalLength);
+    //??? EMIL!!! If padding exists, reduce length by padding length to avoid wrong length higher up
     if (myProtocol == 1) {
       //check if ICMP
-      ICMPInPacket icmpPacket (myData + headerOffset(), myLength- headerOffset(), this);
+      ICMPInPacket icmpPacket (myData + headerOffset(), myLength- headerOffset() - padding, this);
       icmpPacket.decode();
       return;
     }
     else if (myProtocol == 6) {
-      TCPInPacket tcpPacket (myData + headerOffset(), myLength- headerOffset(), this, mySourceIPAddress);
+      TCPInPacket tcpPacket (myData + headerOffset(), myLength- headerOffset() - padding, this, mySourceIPAddress);
       tcpPacket.decode();
       return;
     }
@@ -103,22 +105,17 @@ void IPInPacket::answer(byte* theData, udword theLength) {
   ipHeader->headerChecksum = 0;
   ipHeader->headerChecksum = calculateChecksum(theData-headerOffset(), headerOffset(), 0);
   // chksum calculated after resetting chksum field
-
+  // cout << "HERE'S IP: ";
+  //
+  // for(int i = 0; i < theLength; i++) {
+  //   cout << hex << (int)(byte*)(theData)[i] << ":";
+  // }
+  // cout << endl;
 
   myFrame->answer(theData-headerOffset(), theLength+headerOffset());
   //??? assumes that ip-header is always missing
 }
 
-byte  versionNHeaderLength;
-byte  TypeOfService;
-uword totalLength;
-uword identification;
-uword fragmentFlagsNOffset;
-byte  timeToLive;
-byte  protocol;
-uword headerChecksum;
-IPAddress sourceIPAddress;
-IPAddress destinationIPAddress;
 
 
 InPacket*

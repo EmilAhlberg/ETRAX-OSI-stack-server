@@ -88,7 +88,7 @@ class TCPConnection
 
   void Synchronize(udword theSynchronizationNumber);
   // Handle an incoming SYN segment
-  void NetClose();
+  void NetClose(udword theSynchronizationNumber);
   // Handle an incoming FIN segment
   void AppClose();
   // Handle close from application
@@ -150,7 +150,7 @@ class TCPState
   virtual void Synchronize(TCPConnection* theConnection,
                            udword theSynchronizationNumber);
   // Handle an incoming SYN segment
-  virtual void NetClose(TCPConnection* theConnection);
+  virtual void NetClose(TCPConnection* theConnection, udword theSynchronizationNumber);
   // Handle an incoming FIN segment
   virtual void AppClose(TCPConnection* theConnection);
   // Handle close from application
@@ -240,7 +240,7 @@ class EstablishedState : public TCPState
  public:
   static EstablishedState* instance();
 
-  void NetClose(TCPConnection* theConnection);
+  void NetClose(TCPConnection* theConnection, udword theSynchronizationNumber);
   // Handle an incoming FIN segment
   void Receive(TCPConnection* theConnection,
                udword theSynchronizationNumber,
