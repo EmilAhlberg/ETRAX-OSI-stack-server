@@ -36,25 +36,6 @@ IPInPacket::IPInPacket(byte* theData, udword theLength, InPacket* theFrame)
 : InPacket(theData, theLength, theFrame) {
 }
 
-/*
-class IPHeader
-{
- public:
-  IPHeader() {}
-
-  byte  versionNHeaderLength;
-  byte  TypeOfService;
-  uword totalLength;
-  uword identification;
-  uword fragmentFlagsNOffset;
-  byte  timeToLive;
-  byte  protocol;
-  uword headerChecksum;
-  IPAddress sourceIPAddress;
-  IPAddress destinationIPAddress;
-};
-*/
-
 uword IPInPacket::headerOffset() { return IP::ipHeaderLength; }
 
 void IPInPacket::decode() {

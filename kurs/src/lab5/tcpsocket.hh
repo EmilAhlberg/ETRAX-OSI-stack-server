@@ -1,10 +1,10 @@
 /*!***************************************************************************
 *!
 *! FILE NAME  : tcpsocket.hh
-*! 
+*!
 *! DESCRIPTION: TCPSocket is the TCP protocols stacks interface to the
 *!              application.
-*! 
+*!
 *!***************************************************************************/
 
 #ifndef tcpsocket_hh
@@ -13,6 +13,7 @@
 /****************** INCLUDE FILES SECTION ***********************************/
 
 #include "job.hh"
+#include "threads.hh"
 
 /****************** CLASS DEFINITION SECTION ********************************/
 
@@ -60,7 +61,7 @@ class TCPSocket
   //
   // Interface to TCPConnection
   //
-  
+
   void socketDataReceived(byte* theData, udword theLength);
   // Called from TCP when data has been received. signals the read semaphore.
   void socketDataSent();
@@ -82,7 +83,7 @@ class TCPSocket
   udword          myReadLength;
   // Holds received data beetwen the time that socketDataReceived is called
   // and the Read operation wakes up and passses the data to the application.
-  
+
   bool  eofFound;
   // Connection has been closed by the remote host
 };
@@ -93,7 +94,7 @@ class TCPSocket
 *%
 *% BASE CLASSES : Job
 *%
-*% CLASS TYPE   : 
+*% CLASS TYPE   :
 *%
 *% DESCRIPTION  : Example application
 *%
@@ -111,7 +112,7 @@ class SimpleApplication : public Job
   // Gets called when the application thread begins execution.
   // The SimpleApplication job is scheduled by TCP when a connection is
   // established.
-  
+
  private:
   TCPSocket* mySocket;
   // Pointer to the application associated with this job.
