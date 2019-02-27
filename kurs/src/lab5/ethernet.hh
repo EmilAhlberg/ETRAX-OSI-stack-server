@@ -134,7 +134,6 @@ class Ethernet
   EthernetAddress* ethBroadcastAddress;
   // 0xFFFFFFFFFFFF
 
-
   byte  nextRxPage;
   // Next received buffer to be read. Always runs between 0..rxBufferPages-1
   byte  nextTxPage;

@@ -15,6 +15,7 @@
 #include "ipaddr.hh"
 #include "queue.hh"
 #include "tcpsocket.hh"
+#include "threads.hh"
 
 /****************** CLASS DEFINITION SECTION ********************************/
 
@@ -79,6 +80,7 @@ class TCP
 *%***************************************************************************/
 class TCPState;
 class TCPSender;
+class retransmitTimer;
 class TCPConnection
 {
  public:
@@ -139,10 +141,16 @@ class TCPConnection
   // Data has been acknowledged up to this sequence number. What remains up to
   // sendNext is sent but not yet acked by the other host.
 
+  udword     sentMaxSeq;
+
   TCPSender* myTCPSender;
   TCPState*  myState;
 
+  retransmitTimer* myretransmitTimer;
+
   //LAB 5:
+  bool softLock;
+
   TCPSocket* mySocket;
 
   byte* transmitQueue;
@@ -157,6 +165,10 @@ class TCPConnection
   //the first byte to send in the segment relative the variable transmitQueue,
   udword theSendLength;
   // the number of byte to send in a single segment.
+  udword myWindowSize;
+  // contains the offered window size from each segment.
+  udword lostPacketCounter;
+
 };
 
 /*****************************************************************************
@@ -398,7 +410,7 @@ class TCPSender
   void sendData(byte*  theData,
                 udword theLength);
   // Send a data segment. PSH and ACK flags are set.
-  bool sendFromQueue();
+  void sendFromQueue();
   // maintain the queue and send smaller sets of data in segments
   //until all data are acknowledged.
  private:
@@ -468,6 +480,23 @@ class TCPHeader
   uword  windowSize;
   uword  checksum;
   uword  urgentPointer;
+};
+
+class retransmitTimer : public Timed
+{
+ public:
+   retransmitTimer(TCPConnection* theConnection,
+                   Duration retransmitTime);
+   void start();
+   // this->timeOutAfter(myRetransmitTime);
+   void cancel();
+   // this->resetTimeOut();
+ private:
+   void timeOut();
+   // ...->sendNext = ...->sentUnAcked; ..->sendFromQueue();
+   TCPConnection* myConnection;
+   Duration myRetransmitTime;
+   // one second
 };
 
 /*****************************************************************************

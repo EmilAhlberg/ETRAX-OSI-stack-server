@@ -44,19 +44,42 @@ SimpleApplication::doit()
         for (char i = 0; i < 40; i++) {
           str[i] = 65+i;
         }
-        byte* queue = new byte[5*4000];
-        for (int i = 0; i < 5*100; i++) {
+        //byte* queue = new byte[4000];
+        byte* queue = (byte*) malloc(10000);
+        for (int i = 0; i < 250; i++) {
           memcpy(queue+(i*40), str, 40);
         }
-        mySocket->Write(queue, 5*4000);
-
+        mySocket->Write(queue, 10000);
         // for (int i = 0; i < 5*4000; i++) {
         //   cout << hex << (char)queue[i];
         // }
         // cout << endl;
 
-        delete str; //???????????? 
-        delete queue;
+        delete[] str; //????????????
+        free(queue); //??
+      }
+      if ((char)*aData == 'r')
+      {
+
+        //byte* queue = new byte[4000];
+        byte* queue = new byte[1000000];
+        if(!queue) {
+          cout << "Not enough memory for 1Mb queue" << endl;
+          continue;
+        }
+
+        for (int i = 0; i < 25000; i++) {
+          for (char j = 0; j < 40; j++) {
+            queue[i*40+j] = j+65;
+          }
+        }
+        mySocket->Write(queue, 1000000);
+        // for (int i = 0; i < 5*4000; i++) {
+        //   cout << hex << (char)queue[i];
+        // }
+        // cout << endl;
+
+        delete[] queue; //??
       }
       delete aData;
     }
@@ -71,6 +94,11 @@ SimpleApplication::doit()
 TCPSocket::TCPSocket(TCPConnection* theConnection) : myConnection(theConnection) {
   myReadSemaphore = Semaphore::createQueueSemaphore("read", 0);
   myWriteSemaphore = Semaphore::createQueueSemaphore("write", 0);
+}
+
+TCPSocket::~TCPSocket() {
+  delete myReadSemaphore;
+  delete myWriteSemaphore;
 }
 
 byte*
