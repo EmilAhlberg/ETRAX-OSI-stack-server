@@ -1,9 +1,9 @@
 /*!***************************************************************************
 *!
 *! FILE NAME  : fs.hh
-*! 
+*!
 *! DESCRIPTION: simple filesystem
-*! 
+*!
 *!***************************************************************************/
 
 #ifndef fs_hh
@@ -32,6 +32,12 @@ class FileSystem
  public:
   static FileSystem& instance();
 
+  byte* dynamicFile;
+  udword dynamicFileLength;
+
+
+  FileSystem();
+
   bool writeFile(char *path,char *name,byte *theData,udword theLength);
   // true if the write was done ie if enough memory is present
 
@@ -45,16 +51,3 @@ class FileSystem
 #endif
 
 /****************** END OF FILE fs.hh *************************************/
-
-
-
-
-
-
-
-
-
-
-
-
-
